@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useCamera } from '../hooks/useCamera'
-import { FlashDecoder } from '../utils/flashDecoder'
+import { FlashDecoder, TIMING_CONFIG } from '../utils/flashDecoder'
 import { flashScreenRAF } from '../utils/screenFlasher'
 import './PhoneApp.css'
 
@@ -29,12 +29,15 @@ function App() {
   const canvasRef = useRef(null)
   const decoderRef = useRef(null)
   const flashCancelRef = useRef(null)
+  const countdownIntervalRef = useRef(null)
   
   const [state, setState] = useState(STATES.IDLE)
   const [statusMessage, setStatusMessage] = useState(STATUS_MESSAGES[STATES.IDLE])
   const [challenge, setChallenge] = useState(null)
   const [response, setResponse] = useState(null)
   const [accessResult, setAccessResult] = useState(null)
+  const [countdown, setCountdown] = useState(null)
+  const [instructionMessage, setInstructionMessage] = useState(null)
 
   /**
    * Initialize camera when component mounts
@@ -45,6 +48,10 @@ function App() {
       stopCamera()
       if (flashCancelRef.current) {
         flashCancelRef.current()
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current)
+        countdownIntervalRef.current = null
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -81,17 +88,42 @@ function App() {
     console.log('[App] Challenge decoded:', challengeValue)
     setChallenge(challengeValue)
     setState(STATES.COMPUTE)
-    setStatusMessage(STATUS_MESSAGES[STATES.COMPUTE])
+    setStatusMessage('Challenge received!')
+    setInstructionMessage('Preparing to send response...')
     
     // Compute response: (challenge + 10) % 256
     const responseValue = (challengeValue + 10) % 256
     setResponse(responseValue)
     console.log('[App] Computed response:', responseValue)
     
-    // Small delay before transmitting
-    setTimeout(() => {
-      transmitResponse(responseValue)
-    }, 500)
+    // Start countdown before transmitting
+    const delayMs = TIMING_CONFIG.RESPONSE_DELAY
+    const countdownInterval = 100 // Update every 100ms for smooth countdown
+    let remainingTime = delayMs
+    
+    setCountdown(Math.ceil(remainingTime / 1000))
+    setInstructionMessage(`Please point your phone screen at the gate. Response will be sent in ${Math.ceil(remainingTime / 1000)} seconds...`)
+    
+    countdownIntervalRef.current = setInterval(() => {
+      remainingTime -= countdownInterval
+      const secondsRemaining = Math.ceil(remainingTime / 1000)
+      setCountdown(secondsRemaining)
+      
+      if (secondsRemaining > 0) {
+        setInstructionMessage(`Please point your phone screen at the gate. Response will be sent in ${secondsRemaining} second${secondsRemaining !== 1 ? 's' : ''}...`)
+      } else {
+        setInstructionMessage('Sending response now! Keep screen pointed at gate.')
+      }
+      
+      if (remainingTime <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current)
+          countdownIntervalRef.current = null
+        }
+        setCountdown(null)
+        transmitResponse(responseValue)
+      }
+    }, countdownInterval)
   }
 
   /**
@@ -115,7 +147,9 @@ function App() {
    */
   const transmitResponse = (responseValue) => {
     setState(STATES.TRANSMIT)
-    setStatusMessage(STATUS_MESSAGES[STATES.TRANSMIT])
+    setStatusMessage('Sending response...')
+    setInstructionMessage('Screen will flash now. Keep phone steady and pointed at gate!')
+    setCountdown(null)
     
     // Flash screen with response
     flashCancelRef.current = flashScreenRAF(
@@ -124,7 +158,8 @@ function App() {
         // Transmission complete
         console.log('[App] Response transmitted successfully')
         setState(STATES.DONE)
-        setStatusMessage('Access granted')
+        setStatusMessage('Response sent successfully!')
+        setInstructionMessage('Waiting for gate to verify...')
         setAccessResult('granted')
         
         // Reset after delay to wait for new challenge
@@ -151,6 +186,12 @@ function App() {
       flashCancelRef.current = null
     }
     
+    // Clear countdown interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+    
     // Reset decoder
     if (decoderRef.current) {
       decoderRef.current.reset()
@@ -162,6 +203,8 @@ function App() {
     setChallenge(null)
     setResponse(null)
     setAccessResult(null)
+    setCountdown(null)
+    setInstructionMessage(null)
     
     // Restart decoder if camera is ready
     if (isInitialized && videoRef.current && canvasRef.current && decoderRef.current) {
@@ -202,6 +245,22 @@ function App() {
         {/* Status Section */}
         <div className="status-section">
           <div className="status-message">{statusMessage}</div>
+          
+          {/* Countdown Timer */}
+          {countdown !== null && countdown > 0 && (
+            <div className="countdown-container">
+              <div className="countdown-circle">
+                <div className="countdown-number">{countdown}</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Instruction Message */}
+          {instructionMessage && (
+            <div className="instruction-message">
+              {instructionMessage}
+            </div>
+          )}
           
           {challenge !== null && (
             <div className="info-item">

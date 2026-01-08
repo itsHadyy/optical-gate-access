@@ -14,9 +14,10 @@
 export const TIMING_CONFIG = {
   START_DURATION: 1000,    // Duration of START signal
   BIT_DURATION: 300,       // Duration of each bit
-  END_DURATION: 1000,      // Duration of END signal
+  END_DURATION: 1000,       // Duration of END signal
   SAMPLE_INTERVAL: 50,     // How often to sample brightness (ms)
-  BRIGHTNESS_THRESHOLD: 100 // Threshold to determine ON vs OFF (0-255)
+  BRIGHTNESS_THRESHOLD: 100, // Threshold to determine ON vs OFF (0-255)
+  RESPONSE_DELAY: 3000      // Delay between receiving challenge and sending response (ms)
 }
 
 /**

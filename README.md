@@ -94,9 +94,15 @@ export const TIMING_CONFIG = {
   BIT_DURATION: 300,       // Duration of each bit (ms)
   END_DURATION: 1000,      // Duration of END signal (ms)
   SAMPLE_INTERVAL: 50,     // Brightness sampling interval (ms)
-  BRIGHTNESS_THRESHOLD: 100 // ON vs OFF threshold (0-255)
+  BRIGHTNESS_THRESHOLD: 100, // ON vs OFF threshold (0-255)
+  RESPONSE_DELAY: 3000     // Delay between receiving challenge and sending response (ms)
 }
 ```
+
+**Note**: The `RESPONSE_DELAY` gives users time to position their phone screen correctly before the response is sent. During this delay, users will see:
+- A countdown timer showing remaining seconds
+- Clear instructions to point the phone screen at the gate
+- Visual feedback to ensure proper positioning
 
 ## Browser Requirements
 
