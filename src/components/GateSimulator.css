@@ -1,0 +1,393 @@
+/* Gate Simulator Styles */
+.gate-simulator {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Hidden video and canvas elements */
+.gate-simulator .video-feed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gate-simulator .hidden-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* UI Container */
+.gate-ui-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem;
+  z-index: 10;
+  position: relative;
+}
+
+/* Header */
+.gate-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.gate-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.gate-header .subtitle {
+  font-size: 1.1rem;
+  color: #cccccc;
+}
+
+/* Status Section */
+.gate-status-section {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.gate-status-section .status-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Brightness Indicator */
+.brightness-indicator {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.brightness-label {
+  font-size: 0.9rem;
+  color: #cccccc;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.brightness-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.brightness-bar {
+  width: 100%;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.brightness-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #000000 0%, #4caf50 50%, #ffffff 100%);
+  transition: width 0.1s ease;
+  border-radius: 10px;
+}
+
+/* Info Items */
+.gate-status-section .info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+.gate-status-section .info-label {
+  font-weight: 500;
+  color: #cccccc;
+}
+
+.gate-status-section .info-value {
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 1.3rem;
+}
+
+/* Access Result */
+.gate-status-section .access-result {
+  margin-top: 1.5rem;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.gate-status-section .access-result.granted {
+  background-color: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+  border: 2px solid #4caf50;
+}
+
+.gate-status-section .access-result.failed {
+  background-color: rgba(244, 67, 54, 0.3);
+  color: #f44336;
+  border: 2px solid #f44336;
+}
+
+/* Camera Status */
+.gate-simulator .camera-status {
+  width: 100%;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.gate-simulator .error-message {
+  background-color: rgba(244, 67, 54, 0.2);
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.gate-simulator .error-message p {
+  color: #f44336;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gate-simulator .loading-message {
+  color: #cccccc;
+  font-size: 1rem;
+  padding: 1rem;
+}
+
+.gate-simulator .camera-ready {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #4caf50;
+  font-size: 1rem;
+  padding: 1rem;
+}
+
+.gate-simulator .camera-indicator {
+  color: #4caf50;
+  font-size: 1.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Controls */
+.gate-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.control-group {
+  width: 100%;
+}
+
+.control-group h3 {
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.challenge-button,
+.listen-button {
+  background-color: rgba(33, 150, 243, 0.2);
+  border: 2px solid #2196f3;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.challenge-button:hover:not(:disabled),
+.listen-button:hover:not(:disabled) {
+  background-color: rgba(33, 150, 243, 0.4);
+  transform: scale(1.05);
+}
+
+.challenge-button:active:not(:disabled),
+.listen-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.challenge-button:disabled,
+.listen-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.challenge-button.random {
+  background-color: rgba(156, 39, 176, 0.2);
+  border-color: #9c27b0;
+}
+
+.challenge-button.random:hover:not(:disabled) {
+  background-color: rgba(156, 39, 176, 0.4);
+}
+
+.listen-button.stop {
+  background-color: rgba(244, 67, 54, 0.2);
+  border-color: #f44336;
+}
+
+.listen-button.stop:hover {
+  background-color: rgba(244, 67, 54, 0.4);
+}
+
+.gate-simulator .reset-button {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.gate-simulator .reset-button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.gate-simulator .reset-button:active {
+  transform: scale(0.95);
+}
+
+.gate-simulator .retry-button {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gate-simulator .retry-button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Instructions */
+.gate-simulator .instructions {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.gate-simulator .instructions h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.gate-simulator .instructions ol {
+  list-style-position: inside;
+  color: #cccccc;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.gate-simulator .instructions li {
+  margin: 0.5rem 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .gate-header h1 {
+    font-size: 2rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .challenge-button,
+  .listen-button {
+    width: 100%;
+  }
+}
+

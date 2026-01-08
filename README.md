@@ -9,6 +9,7 @@ A web-based gate access system using optical communication. The phone uses its c
 - **Time-based binary encoding**: Decodes 8-bit challenge values using precise timing
 - **Automatic protocol handling**: State machine manages the complete communication flow
 - **Mobile-first design**: Optimized for mobile devices with full-screen UI
+- **Gate Simulator**: Built-in testing page to simulate the gate device (use on laptop for testing)
 
 ## Technology Stack
 
@@ -32,6 +33,13 @@ npm run dev
 ```
 
 The app will be available at `http://localhost:3000`
+
+### Pages
+
+- **Phone App** (`/phone`): The main app for mobile devices to detect gate signals and respond
+- **Gate Simulator** (`/gate`): Testing page to simulate the gate device (use on laptop)
+
+Use the navigation bar at the top to switch between pages.
 
 ## Building for Production
 
@@ -108,38 +116,68 @@ The app requires:
 ```
 optical-gate-access/
 ├── src/
-│   ├── components/       # React components
-│   ├── hooks/            # Custom React hooks
-│   │   └── useCamera.js  # Camera initialization hook
-│   ├── utils/            # Utility functions
-│   │   ├── flashDecoder.js    # Optical flash decoder
-│   │   └── screenFlasher.js    # Screen flashing utility
-│   ├── App.jsx           # Main application component
-│   ├── App.css           # Application styles
-│   ├── main.jsx          # Application entry point
-│   └── index.css         # Global styles
-├── index.html            # HTML template
-├── package.json          # Dependencies
-├── vite.config.js        # Vite configuration
-└── README.md             # This file
+│   ├── components/              # React components
+│   │   ├── PhoneApp.jsx         # Phone application (detects & responds)
+│   │   ├── PhoneApp.css        # Phone app styles
+│   │   ├── GateSimulator.jsx   # Gate simulator (sends & receives)
+│   │   ├── GateSimulator.css   # Gate simulator styles
+│   │   ├── Navigation.jsx      # Navigation component
+│   │   └── Navigation.css      # Navigation styles
+│   ├── hooks/                   # Custom React hooks
+│   │   └── useCamera.js         # Camera initialization hook
+│   ├── utils/                   # Utility functions
+│   │   ├── flashDecoder.js     # Optical flash decoder
+│   │   ├── screenFlasher.js     # Screen flashing utility
+│   │   ├── gateFlashSender.js   # Gate flash sender
+│   │   └── gateFlashReceiver.js # Gate flash receiver
+│   ├── App.jsx                  # Main router component
+│   ├── App.css                  # Router styles
+│   ├── main.jsx                 # Application entry point
+│   └── index.css                # Global styles
+├── index.html                   # HTML template
+├── package.json                 # Dependencies
+├── vite.config.js               # Vite configuration
+└── README.md                    # This file
 ```
+
+## Testing with Gate Simulator
+
+1. **On your laptop**: Open the app and navigate to `/gate` (Gate Simulator)
+2. **On your phone**: Open the app and navigate to `/phone` (Phone App)
+3. **Setup**:
+   - Point your laptop camera at the phone screen
+   - Point your phone's back camera at the laptop screen
+4. **Test flow**:
+   - On laptop: Click "Send Challenge" (or use random challenge)
+   - Laptop screen will flash the challenge
+   - Phone should automatically detect and respond
+   - On laptop: Click "Start Listening" to detect phone's response
+   - Response will be verified automatically
+
+The gate simulator shows:
+- Real-time brightness detection from camera
+- Challenge sent and response received
+- Automatic verification of the response
+- Expected vs actual response comparison
 
 ## Troubleshooting
 
 ### Camera not working
 - Ensure HTTPS is enabled (required for getUserMedia)
 - Check browser permissions for camera access
-- Verify device has a back camera
+- Verify device has a camera (back camera for phone, any camera for laptop)
 
 ### Flashes not detected
 - Ensure good lighting conditions
-- Point camera directly at gate device
-- Adjust `BRIGHTNESS_THRESHOLD` if needed
+- Point camera directly at the flashing screen
+- Adjust `BRIGHTNESS_THRESHOLD` if needed (in `flashDecoder.js`)
+- For gate simulator: Ensure phone screen is bright and visible to laptop camera
 
 ### Screen flashing not visible
 - Check that full-screen overlay is not blocked
 - Verify device supports full-screen color changes
 - Ensure no other apps are blocking screen access
+- For testing: Make sure both screens are visible to each other's cameras
 
 ## License
 

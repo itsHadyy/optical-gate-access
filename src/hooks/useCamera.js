@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Custom hook for accessing the device's back camera
- * Uses getUserMedia with facingMode: "environment" to get the rear camera
- * 
+ * Custom hook for accessing the device's camera.
+ * Uses getUserMedia with configurable facingMode (defaults to back camera).
+ *
+ * @param {Object} options - Camera options
+ * @param {'user'|'environment'} options.facingMode - Preferred camera
+ * @param {number} options.width - Preferred width
+ * @param {number} options.height - Preferred height
  * @returns {Object} Camera state and controls
  */
-export function useCamera() {
+export function useCamera(options = {}) {
+  const {
+    facingMode = 'environment',
+    width = 1280,
+    height = 720,
+  } = options
+
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -19,18 +29,18 @@ export function useCamera() {
   const initializeCamera = async () => {
     try {
       setError(null)
-      
-      // Request camera access with back camera preference
+
+      // Request camera access with provided constraints
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'environment', // Back camera
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+          facingMode,
+          width: { ideal: width },
+          height: { ideal: height },
+        },
       })
 
       streamRef.current = stream
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         // Wait for video to be ready
@@ -50,7 +60,7 @@ export function useCamera() {
       setError(err.message || 'Failed to access camera')
       setHasPermission(false)
       setIsInitialized(false)
-      
+
       // Provide user-friendly error messages
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setError('Camera permission denied. Please allow camera access.')
@@ -69,7 +79,7 @@ export function useCamera() {
    */
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
     if (videoRef.current) {
@@ -91,7 +101,7 @@ export function useCamera() {
     error,
     hasPermission,
     initializeCamera,
-    stopCamera
+    stopCamera,
   }
 }
 
