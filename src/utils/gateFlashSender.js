@@ -26,7 +26,8 @@ export function numberToBits(value) {
 }
 
 /**
- * Send a challenge flash sequence
+ * Send a challenge flash sequence using requestAnimationFrame for 30+ fps
+ * Updates screen continuously at display refresh rate for smooth rendering
  * @param {number} challengeValue - Challenge value to send (0-255)
  * @param {Function} onComplete - Callback when transmission is complete
  * @param {Function} onProgress - Optional callback for progress updates
@@ -34,9 +35,10 @@ export function numberToBits(value) {
  */
 export function sendGateFlash(challengeValue, onComplete, onProgress) {
   const bits = numberToBits(challengeValue)
-  let currentStep = 0
-  let timeoutId = null
+  let startTime = null
   let isCancelled = false
+  let animationFrameId = null
+  let lastProgressUpdate = 0
 
   // Get or create flash overlay element
   let flashOverlay = document.getElementById('gate-flash-overlay')
@@ -51,7 +53,7 @@ export function sendGateFlash(challengeValue, onComplete, onProgress) {
       height: 100%;
       z-index: 99999;
       pointer-events: none;
-      transition: background-color 0ms linear;
+      will-change: background-color;
     `
     document.body.appendChild(flashOverlay)
   }
@@ -59,83 +61,98 @@ export function sendGateFlash(challengeValue, onComplete, onProgress) {
   // Make overlay visible
   flashOverlay.style.display = 'block'
   flashOverlay.style.zIndex = '99999'
+  flashOverlay.style.transition = 'none'
+
+  // Build flashing sequence
+  const sequence = [
+    // START signal: white for START_DURATION
+    {
+      color: '#FFFFFF', // White = ON
+      duration: TIMING_CONFIG.START_DURATION,
+      description: 'Sending START signal'
+    },
+    // Add 8 bits
+    ...bits.map((bit, i) => ({
+      color: bit === 1 ? '#FFFFFF' : '#000000', // White = ON, Black = OFF
+      duration: TIMING_CONFIG.BIT_DURATION,
+      description: `Sending bit ${i + 1}/8: ${bit}`
+    })),
+    // END signal: black for END_DURATION
+    {
+      color: '#000000', // Black = OFF
+      duration: TIMING_CONFIG.END_DURATION,
+      description: 'Sending END signal'
+    }
+  ]
+
+  let currentStep = 0
+  let stepStartTime = 0
 
   /**
-   * Execute next step in flashing sequence
+   * Animation loop using requestAnimationFrame (runs at 30+ fps, typically 60fps)
    */
-  function executeStep() {
+  function animate(timestamp) {
     if (isCancelled) {
       cleanup()
       return
     }
 
-    const step = steps[currentStep]
+    if (startTime === null) {
+      startTime = timestamp
+      stepStartTime = timestamp
+    }
 
-    if (!step) {
+    if (currentStep >= sequence.length) {
       // All steps complete
       cleanup()
       if (onComplete) onComplete()
       return
     }
 
-    // Update overlay color
-    flashOverlay.style.backgroundColor = step.color
-    flashOverlay.style.transition = `background-color ${step.duration}ms linear`
+    const step = sequence[currentStep]
+    const stepElapsed = timestamp - stepStartTime
 
-    if (onProgress && step.description) {
-      onProgress(step.description)
+    // Continuously update color at 30+ fps for smooth rendering
+    flashOverlay.style.backgroundColor = step.color
+
+    // Update progress every ~100ms to avoid too frequent callbacks
+    if (onProgress && timestamp - lastProgressUpdate > 100) {
+      const progress = Math.min(100, (stepElapsed / step.duration) * 100)
+      onProgress(`${step.description} (${Math.round(progress)}%)`)
+      lastProgressUpdate = timestamp
     }
 
-    // Schedule next step
-    timeoutId = setTimeout(() => {
+    if (stepElapsed >= step.duration) {
+      // Move to next step
       currentStep++
-      executeStep()
-    }, step.duration)
+      stepStartTime = timestamp
+      lastProgressUpdate = timestamp
+      if (onProgress && currentStep < sequence.length) {
+        onProgress(sequence[currentStep].description)
+      }
+    }
+
+    // Continue animation loop (runs at display refresh rate, typically 60fps)
+    animationFrameId = requestAnimationFrame(animate)
   }
 
   /**
    * Cleanup function
    */
   function cleanup() {
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      timeoutId = null
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
     }
     if (flashOverlay) {
       flashOverlay.style.display = 'none'
       flashOverlay.style.backgroundColor = 'transparent'
+      flashOverlay.style.willChange = 'auto'
     }
   }
 
-  // Build flashing sequence
-  const steps = [
-    // START signal: white for START_DURATION
-    {
-      color: '#FFFFFF', // White = ON
-      duration: TIMING_CONFIG.START_DURATION,
-      description: 'Sending START signal'
-    }
-  ]
-
-  // Add 8 bits
-  for (let i = 0; i < 8; i++) {
-    const bit = bits[i]
-    steps.push({
-      color: bit === 1 ? '#FFFFFF' : '#000000', // White = ON, Black = OFF
-      duration: TIMING_CONFIG.BIT_DURATION,
-      description: `Sending bit ${i + 1}/8: ${bit}`
-    })
-  }
-
-  // END signal: black for END_DURATION
-  steps.push({
-    color: '#000000', // Black = OFF
-    duration: TIMING_CONFIG.END_DURATION,
-    description: 'Sending END signal'
-  })
-
-  // Start flashing sequence
-  executeStep()
+  // Start animation loop (runs at display refresh rate, minimum 30fps)
+  animationFrameId = requestAnimationFrame(animate)
 
   // Return cancel function
   return () => {

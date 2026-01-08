@@ -146,8 +146,8 @@ export function flashScreen(responseValue, onComplete, onProgress) {
 }
 
 /**
- * Flash screen using requestAnimationFrame for smoother transitions
- * Alternative implementation with more precise timing
+ * Flash screen using requestAnimationFrame for 30+ fps smooth updates
+ * Updates screen continuously at display refresh rate (typically 60fps, minimum 30fps)
  * @param {number} responseValue - Response value to send (0-255)
  * @param {Function} onComplete - Callback when flashing is complete
  * @param {Function} onProgress - Optional callback for progress updates
@@ -158,6 +158,7 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
   let startTime = null
   let isCancelled = false
   let animationFrameId = null
+  let lastProgressUpdate = 0
 
   // Get or create flash overlay element
   let flashOverlay = document.getElementById('flash-overlay')
@@ -172,6 +173,7 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
       height: 100%;
       z-index: 99999;
       pointer-events: none;
+      will-change: background-color;
     `
     document.body.appendChild(flashOverlay)
   }
@@ -193,7 +195,6 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
 
   let currentStep = 0
   let stepStartTime = 0
-  let totalElapsed = 0
 
   function animate(timestamp) {
     if (isCancelled) {
@@ -206,8 +207,6 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
       stepStartTime = timestamp
     }
 
-    const elapsed = timestamp - startTime
-
     if (currentStep >= sequence.length) {
       // All steps complete
       cleanup()
@@ -218,18 +217,28 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
     const step = sequence[currentStep]
     const stepElapsed = timestamp - stepStartTime
 
-    // Update color immediately (no transition for precise timing)
+    // Continuously update color at 30+ fps (requestAnimationFrame typically runs at 60fps)
+    // This ensures smooth rendering and better camera detection
     flashOverlay.style.backgroundColor = step.color
+
+    // Update progress every ~100ms to avoid too frequent callbacks
+    if (onProgress && timestamp - lastProgressUpdate > 100) {
+      const progress = Math.min(100, (stepElapsed / step.duration) * 100)
+      onProgress(`${step.desc} (${Math.round(progress)}%)`)
+      lastProgressUpdate = timestamp
+    }
 
     if (stepElapsed >= step.duration) {
       // Move to next step
       currentStep++
       stepStartTime = timestamp
+      lastProgressUpdate = timestamp
       if (onProgress && currentStep < sequence.length) {
         onProgress(sequence[currentStep].desc)
       }
     }
 
+    // Continue animation loop (runs at display refresh rate, typically 60fps)
     animationFrameId = requestAnimationFrame(animate)
   }
 
@@ -241,10 +250,11 @@ export function flashScreenRAF(responseValue, onComplete, onProgress) {
     if (flashOverlay) {
       flashOverlay.style.display = 'none'
       flashOverlay.style.backgroundColor = 'transparent'
+      flashOverlay.style.willChange = 'auto'
     }
   }
 
-  // Start animation
+  // Start animation loop (runs at display refresh rate, minimum 30fps)
   animationFrameId = requestAnimationFrame(animate)
 
   // Return cancel function
