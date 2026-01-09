@@ -118,6 +118,11 @@ export class FlashDecoder {
     this.baselineBrightness = null
     this.baselineSamples = []
     this.isCalibrated = false
+    
+    // Bit sampling state for accurate bit reading
+    this.currentBitSamples = null
+    this.currentBitValue = undefined
+    this.currentBitStartTime = null
   }
 
   /**
@@ -223,19 +228,63 @@ export class FlashDecoder {
         
         const isOnBit = isLightOn(brightness, this.baselineBrightness)
         
-        if (elapsed >= TIMING_CONFIG.BIT_DURATION) {
-          // Time to record this bit (ON = 1, OFF = 0)
-          const bit = isOnBit ? 1 : 0
+        // Initialize bit samples array if starting a new bit
+        if (!this.currentBitSamples) {
+          this.currentBitSamples = []
+          this.currentBitStartTime = this.lastStateChange
+        }
+        
+        // Calculate elapsed time for current bit (not total time)
+        const bitElapsed = now - this.currentBitStartTime
+        
+        // Collect samples during the bit period (sample at 30+ fps = every frame)
+        this.currentBitSamples.push(isOnBit ? 1 : 0)
+        
+        // Sample bit at the middle of the bit period (150ms for 300ms bit duration)
+        // This gives us the most stable reading, avoiding edge transitions
+        const bitMidpoint = TIMING_CONFIG.BIT_DURATION / 2
+        
+        if (bitElapsed >= bitMidpoint && this.currentBitValue === undefined) {
+          // At midpoint, determine bit value using majority vote from samples so far
+          const ones = this.currentBitSamples.filter(b => b === 1).length
+          const zeros = this.currentBitSamples.filter(b => b === 0).length
+          // Majority vote - if more 1s, bit is 1; otherwise 0
+          this.currentBitValue = ones > zeros ? 1 : 0
+          console.log(`[FlashDecoder] Bit ${this.currentBitIndex + 1}/8 sampled at midpoint (${bitMidpoint.toFixed(0)}ms): ${this.currentBitValue} (samples: ${ones} ON, ${zeros} OFF, total: ${this.currentBitSamples.length})`)
+        }
+        
+        // After full bit duration, record the bit and move to next
+        if (bitElapsed >= TIMING_CONFIG.BIT_DURATION) {
+          // Use the value determined at midpoint, or fallback to majority vote from all samples
+          let bit
+          if (this.currentBitValue !== undefined) {
+            bit = this.currentBitValue
+          } else {
+            // Fallback: majority vote from all collected samples
+            const ones = this.currentBitSamples.filter(b => b === 1).length
+            const zeros = this.currentBitSamples.filter(b => b === 0).length
+            bit = ones > zeros ? 1 : 0
+          }
+          
           this.bits.push(bit)
           this.currentBitIndex++
           this.lastStateChange = now
 
-          console.log(`[FlashDecoder] Bit ${this.currentBitIndex}/8: ${bit} (brightness: ${brightness.toFixed(1)}, baseline: ${this.baselineBrightness.toFixed(1)}, change: ${(brightness - this.baselineBrightness).toFixed(1)})`)
+          console.log(`[FlashDecoder] Bit ${this.currentBitIndex}/8 recorded: ${bit} | Binary so far: ${this.bits.join('')} | Brightness: ${brightness.toFixed(1)}, Baseline: ${this.baselineBrightness.toFixed(1)}, Change: ${(brightness - this.baselineBrightness).toFixed(1)}`)
 
           if (this.currentBitIndex >= 8) {
             // All 8 bits received, wait for END signal
             this.state = 'DETECT_END'
-            console.log('[FlashDecoder] All 8 bits received. Bits:', this.bits.join(''))
+            console.log('[FlashDecoder] ✓ All 8 bits received. Complete binary:', this.bits.join(''))
+            // Clean up bit sampling state
+            this.currentBitSamples = null
+            this.currentBitValue = undefined
+            this.currentBitStartTime = null
+          } else {
+            // Reset for next bit
+            this.currentBitSamples = []
+            this.currentBitValue = undefined
+            this.currentBitStartTime = now
           }
         }
         break
@@ -323,6 +372,9 @@ export class FlashDecoder {
     this.baselineBrightness = null
     this.baselineSamples = []
     this.isCalibrated = false
+    this.currentBitSamples = null
+    this.currentBitValue = undefined
+    this.currentBitStartTime = null
   }
 }
 
