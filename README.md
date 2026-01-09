@@ -93,11 +93,26 @@ export const TIMING_CONFIG = {
   START_DURATION: 1000,    // Duration of START signal (ms)
   BIT_DURATION: 300,       // Duration of each bit (ms)
   END_DURATION: 1000,      // Duration of END signal (ms)
-  SAMPLE_INTERVAL: 50,     // Brightness sampling interval (ms)
-  BRIGHTNESS_THRESHOLD: 100, // ON vs OFF threshold (0-255)
+  SAMPLE_INTERVAL: 33,     // Target 30 fps sampling (1000/30 ≈ 33ms), actual ~60fps with RAF
+  BRIGHTNESS_CHANGE_THRESHOLD: 50, // Minimum brightness change to detect ON (differential detection)
+  BASELINE_SAMPLES: 30,    // Number of samples to calculate baseline brightness (1 second at 30fps)
   RESPONSE_DELAY: 3000     // Delay between receiving challenge and sending response (ms)
 }
 ```
+
+## Detection Features
+
+### Differential Detection
+- **Baseline Calibration**: The system automatically calibrates baseline brightness (~1 second) before detection
+- **Change-Based Detection**: Only detects light changes from the device, not ambient light
+- **30+ FPS Sampling**: Uses `requestAnimationFrame` for smooth 30+ fps sampling (typically 60fps)
+- **8-Bit Validation**: Ensures exactly 8 bits are received and validates bit values
+
+### How It Works
+1. **Calibration Phase**: Collects 30 baseline samples (~1 second) to establish ambient brightness
+2. **Detection Phase**: Compares current brightness to baseline - only triggers when brightness change exceeds threshold
+3. **8-Bit Reading**: Reads exactly 8 bits, each lasting 300ms, with proper validation
+4. **Protocol Compliance**: Follows strict timing: START (1000ms) → 8 bits (300ms each) → END (1000ms)
 
 **Note**: The `RESPONSE_DELAY` gives users time to position their phone screen correctly before the response is sent. During this delay, users will see:
 - A countdown timer showing remaining seconds
